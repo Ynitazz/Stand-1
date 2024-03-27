@@ -1,26 +1,25 @@
 // Start Pins
-#define buttonMotorForwardX 16
-#define buttonMotorForwardY 17
-#define buttonMotorForwardW 18
-#define buttonMotorForwardE 19
-#define buttonMotorBackwardX 20
-#define buttonMotorBackwardY 21
-#define buttonMotorBackwardW 22
-#define buttonMotorBackwardE 23
-#define buttonResetPosition 24
-#define buttonHomePosition 25
-#define buttonStopAuto 30
-#define driverReadyToMove 31
-#define sensorMaxX 26
-#define sensorMaxY 27
-#define sensorMaxW 28
-#define dataPLC 29
+#define buttonMotorForwardX 21//
+#define buttonMotorForwardY 22//
+#define buttonMotorForwardW 23//
+#define buttonMotorForwardE 24//
+#define buttonMotorBackwardX 25//
+#define buttonMotorBackwardY 26//
+#define buttonMotorBackwardW 27//
+#define buttonMotorBackwardE 28//
+#define buttonResetPosition 29//
+#define driverReadyToMove 20//
+#define SerialForPLC 15//
+#define sensorMaxX 16//
+#define sensorMaxY 18//
+#define sensorMaxW 19//
+#define dataPLC 17//
 #define motorFrequency 3000
 int pinsMotors[4][4] = {
-  { 0, 1, 2, 3 },
-  { 4, 5, 6, 7 },
-  { 8, 9, 10, 11 },
-  { 12, 13, 14, 15 }
+  { 33, 34, 35, 36 },
+  { 37, 38, 39, 40 },
+  { 1, 2, 3, 4 },
+  { 5, 6, 7, 8 }
 };
 // End Pins
 // Start Settings
@@ -63,9 +62,6 @@ void loop() {
   if (micros() - moveTimer < 0){
     moveTimer = micros();
   }
-  if (digitalRead(buttonStopAuto) == HIGH ) {
-    startMove = false;
-  }
   parsePLC();
   if (startMove) {
     digitalWrite(driverReadyToMove, LOW);
@@ -92,8 +88,7 @@ void loop() {
       + (digitalRead(buttonMotorBackwardY) == HIGH) ? 1 : 0
       + (digitalRead(buttonMotorBackwardW) == HIGH) ? 1 : 0
       + (digitalRead(buttonMotorBackwardE) == HIGH) ? 1 : 0
-      + (digitalRead(buttonResetPosition) == HIGH)  ? 1 : 0
-      + (digitalRead(buttonHomePosition) == HIGH) ? 1 : 0;
+      + (digitalRead(buttonResetPosition) == HIGH)  ? 1 : 0;
     if (buttonsActive > 1) {
       return;
     }
@@ -125,9 +120,6 @@ void loop() {
       for (int i = 1; i < 4; i++) {
         countStep[i] *= 0;
       }
-    }
-    if (digitalRead(buttonHomePosition) == HIGH) {
-      moveToHome();
     }
   }
 }
@@ -168,6 +160,9 @@ void moveToHome() {
       move(2, true);
     }
     else if (digitalRead(sensorMaxX) == 1 && digitalRead(sensorMaxY) == 1 && digitalRead(sensorMaxW) == 1) {
+      for (int i = 1; i < 4; i++) {
+        countStep[i] *= 0;
+      }
       break;
     }
   }
@@ -193,13 +188,20 @@ void parsePLC() {
       counterParsePLC--;
     }
     if (counterParsePLC < 0 ) {
-      counterParsePLC = 5; 
-      if (booferPLCData == 1 ) {
+      counterParsePLC = 5;
+      if (booferPLCData == 0) {
+        moveToHome();
+        startMove = false;
+      } 
+      else if (booferPLCData == 1 ) {
         startMove = false;
       }
       else if (!startMove){
         startMove = true;
-        position = booferPLCData;
+        position = booferPLCData - 2;
+        if (sizeof(manipulatorPosition) / sizeof(manipulatorPosition[0]) >= position){
+          startMove = false;
+        }
       }
       resivingPLCData = false;
     }
